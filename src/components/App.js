@@ -1,128 +1,121 @@
-import api from "../utils/api"
-import { UserContext } from "../contexts/CurrentUserContext"
-import Header from './Header';
-import Main from './Main';
-import Footer from './Footer';
-import PopupWithForm from './PopupWithForm';
-import EditProfilePopup from './EditProfilePopup';
-import EditAvatarPopup from './EditAvatarPopup';
-import AddPlacePopup from './AddPlacePopup'
-import ImagePopup from './ImagePopup';
+import Header from "./Header";
+import Register from "./Register";
+import Login from "./Login";
 import React from 'react';
-import { FOCUSABLE_SELECTOR } from '@testing-library/user-event/dist/utils';
+import * as Auth from './Auth.js';
+import { Route, Switch, Redirect, useHistory } from "react-router-dom";
+import MainPage from "./MainPage";
+import ProtectedRoute from "./ProtectedRoute";
+import InfoTooltip from "./InfoTooltip";
 
 function App() {
 
-    React.useEffect(()=>{
-        api.getUserInfo().then((data) =>{
-            setCurrentUser(data);
-        }).catch((err) => {
-            console.log(err)
-        });
+    const [loggedIn, setLoggedIn] = React.useState(false);
+    const [userData, setUserData] = React.useState("");
+    const [isTooltipOpen, setIsTooltipOpen] = React.useState(false);
+    const [tooltipContent, setTooltipContent] = React.useState({})
+    const [isOkinfo, setIsOkInfo] = React.useState(false);
+    const history = useHistory();
 
-        api.getCardsArray().then((data) => {
-            setCards(data)
-        }).catch((err) => {
-            console.log(err)
-        });
-    },[])
-
-    // React.useEffect(()=>{
-    //     api.getCardsArray().then((data) => {
-    //         setCards(data)
-    //     })
-    // },[])
-
-    const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = React.useState(false);
-    const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = React.useState(false);
-    const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = React.useState(false);
-    const [selectedCard, setSelectedCard] = React.useState(null);
-    const [currentUser, setCurrentUser] = React.useState({});
-    const [cards, setCards] = React.useState([]);
-
-    function closeAllPopups(){
-        setIsAddPlacePopupOpen(false);
-        setIsEditProfilePopupOpen(false);
-        setIsEditAvatarPopupOpen(false);
-        setSelectedCard(null);
-    }
-
-    function handleEditAvatarClick(){
-        setIsEditAvatarPopupOpen(!isEditAvatarPopupOpen);
-    }
+    function auth(jwt) {
+        return Auth.getContent(jwt)
+          .then((res) => {
+            if (res) {
+              setLoggedIn(true);
+              setUserData(res.data.email);
+            }
+          })
+      };
     
-    function handleEditProfileClick(){
-        setIsEditProfilePopupOpen(!isEditProfilePopupOpen);
-    }
-    function handleAddPlaceClick(){
-        setIsAddPlacePopupOpen(!isAddPlacePopupOpen);
-    }
-    function handleCardClick(card){
-        setSelectedCard(card);
-    }
+      React.useEffect(() => {
+        const jwt = localStorage.getItem('jwt');
+        if (jwt) {
+          auth(jwt);
+        }
+      }, [loggedIn]);
 
-    function handleUpdateUser(obj){
-        api.editProfile(obj.name, obj.about).then((data)=>{
-            setCurrentUser(data);
-            closeAllPopups();
-        }).catch((err) => {
-            console.log(err)
-        })
-    }
+      React.useEffect(()=>{
+        if(loggedIn){
+            history.push('/')
+        }
+      },[loggedIn])
 
-    function handleUpdateAvatar(link){
-        api.setNewAvatar(link).then((data)=>{
-            setCurrentUser(data);
-            closeAllPopups();
-        }).catch((err) => {
-            console.log(err)
-        })
-    }
-
-    function handleAddCard(obj){
-        api.addCard(obj.name, obj.link).then((data)=>{
-            setCards([data,...cards]);
-            closeAllPopups();
-        }).catch((err) => {
-            console.log(err)
-        })
-    }
-
-    function handleCardLike(card){
-        const isLiked = card.likes.some(i => i._id === currentUser._id)
-
-        api.changeLikeCardStatus(card._id, !isLiked).then((newCard) => {
-            setCards((state) => state.map((c) => c._id === card._id ? newCard : c));
-        }).catch((err) => {
-            console.log(err)
+      const onRegister = (password, email) => {
+        return Auth.register(password, email).then((res) => {
+          if (!res || res.statusCode === 400) {
+            console.log("Ошибка")
+          } else if(res.error){
+            setTooltipContent({
+              text: "Что-то пошло не так! Попробуйте ещё раз.",
+          })
+          setIsOkInfo(false)
+          setIsTooltipOpen(true)
+          } else if (res.data){
+            setTooltipContent({
+              text: "Вы успешно зарегистрировались!",
+          })
+          setIsOkInfo(true)
+          setIsTooltipOpen(true)
+          }
+          return res;
         });
-    }
+      };
+    
+      const onLogin = (email, password) => {
+        return Auth.authorize(email, password).then((res) => {
+          if (!res) {
+            console.log('Ошикба')
+            setTooltipContent({
+              picture: "url(../images/failed.svg)",
+              text: "Что-то пошло не так! Попробуйте ещё раз.",
+          })
+          setIsOkInfo(false)
+          setIsTooltipOpen(true)
+          } else if (res.token) {
+            setLoggedIn(true);
+            localStorage.setItem('jwt', res.token);
+          }
+        });
+      };
+    
+      const onSignOut = () => {
+        localStorage.removeItem('jwt');
+        setLoggedIn(false);
+        history.push('/sign-in');
+      };
 
-    function handleCardDelete(card){
-
-        api.deleteCard(card._id).then(() => {
-            setCards(() => cards.filter(c => c._id != card._id))
-        }).catch((err) => {
-            console.log(err)
-        })
-    }
+      function onCloseTooltip(){
+        setIsTooltipOpen(false);
+        if(isOkinfo){
+          history.push('/sign-in')
+        }
+      }
   
     return (
     <div className="App">
-        <Header/>
-        <UserContext.Provider value={currentUser}>
-            
-            <Main onEditProfile={handleEditProfileClick} onAddPlace={handleAddPlaceClick} onEditAvatar={handleEditAvatarClick} onCardClick={handleCardClick} cards={cards} onCardLike={handleCardLike} onCardDelete={handleCardDelete}/>
-            <Footer />
-            <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser}/>   
-            <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddCard={handleAddCard}/>
-            <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar}/>
-            <PopupWithForm name="delete-card" title={"Вы уверены"} onClose={closeAllPopups} buttonText={'Да'}>
-                <form id="popup-card-delete__form" className="popup__submit-form popup-delete-card__form" noValidate> 
-                </form>
-            </PopupWithForm>
-        <ImagePopup card={selectedCard} onClose={closeAllPopups}/>
-    </UserContext.Provider>
+        <Switch>
+            <ProtectedRoute
+            exact
+            path="/"
+            loggedIn={loggedIn}
+            onSignOut={onSignOut}
+            component={MainPage}
+            userData={userData}
+            />
+            <Route exact path="/sign-up">
+              <Header name={"Войти"} link={"/sign-in"}/>
+              <Register onRegister={onRegister}/>
+              <InfoTooltip isOpen={isTooltipOpen} tooltipContent={tooltipContent} onCloseTooltip={onCloseTooltip} isOkinfo={isOkinfo}/>
+            </Route>
+            <Route exact path="/sign-in">
+              <Header name={"Регистрация"} link={'sign-up'}/>
+              <Login onLogin={onLogin}/>
+              <InfoTooltip isOpen={isTooltipOpen} tooltipContent={tooltipContent} onCloseTooltip={onCloseTooltip}/>
+            </Route>
+            <Route>
+                {loggedIn ? <Redirect to="/" /> : <Redirect to="/sign-in" />}
+            </Route>
+        </Switch>
     </div>
   );
 }
