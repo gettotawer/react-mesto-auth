@@ -110,8 +110,6 @@ function MainPage(props) {
                 <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddCard={handleAddCard}/>
                 <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar}/>
                 <PopupWithForm name="delete-card" title={"Вы уверены"} onClose={closeAllPopups} buttonText={'Да'}>
-                    <form id="popup-card-delete__form" className="popup__submit-form popup-delete-card__form" noValidate> 
-                    </form>
                 </PopupWithForm>
                 <ImagePopup card={selectedCard} onClose={closeAllPopups}/>
             </UserContext.Provider>

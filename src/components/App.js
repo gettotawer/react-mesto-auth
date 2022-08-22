@@ -24,7 +24,7 @@ function App() {
               setLoggedIn(true);
               setUserData(res.data.email);
             }
-          })
+          }).catch(console.log("Что-то пошло не так, возможно, нужно немного подождать."))
       };
     
       React.useEffect(() => {
@@ -42,40 +42,33 @@ function App() {
 
       const onRegister = (password, email) => {
         return Auth.register(password, email).then((res) => {
-          if (!res || res.statusCode === 400) {
-            console.log("Ошибка")
-          } else if(res.error){
-            setTooltipContent({
-              text: "Что-то пошло не так! Попробуйте ещё раз.",
-          })
-          setIsOkInfo(false)
-          setIsTooltipOpen(true)
-          } else if (res.data){
-            setTooltipContent({
-              text: "Вы успешно зарегистрировались!",
+          setTooltipContent({
+            text: "Вы успешно зарегистрировались!",
           })
           setIsOkInfo(true)
           setIsTooltipOpen(true)
-          }
-          return res;
-        });
-      };
-    
-      const onLogin = (email, password) => {
-        return Auth.authorize(email, password).then((res) => {
-          if (!res) {
-            console.log('Ошикба')
+            return res;
+          }).catch(()=> {
             setTooltipContent({
-              picture: "url(../images/failed.svg)",
               text: "Что-то пошло не так! Попробуйте ещё раз.",
           })
           setIsOkInfo(false)
           setIsTooltipOpen(true)
-          } else if (res.token) {
+          });
+        };
+    
+      const onLogin = (email, password) => {
+        return Auth.authorize(email, password).then((res) => {
             setLoggedIn(true);
             localStorage.setItem('jwt', res.token);
-          }
-        });
+        }).catch(()=>{
+          setTooltipContent({
+            picture: "url(../images/failed.svg)",
+            text: "Что-то пошло не так! Попробуйте ещё раз.",
+          })
+          setIsOkInfo(false)
+          setIsTooltipOpen(true)
+          });
       };
     
       const onSignOut = () => {

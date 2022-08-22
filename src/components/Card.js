@@ -1,9 +1,13 @@
+import React from "react";
+import { UserContext } from "../contexts/CurrentUserContext";
+
 function Card (props){
-    const isOwn = (props.card.owner._id === props.userId);
-    const isLiked = props.card.likes.some(i => i._id === props.userId);
+    const userData = React.useContext(UserContext);
+    const isOwn = (props.card.owner._id === userData._id);
+    const isLiked = props.card.likes.some(i => i._id === userData._id);
     return(
         <div className="element">
-            <img src={props.card.link} alt="" className="element__image" onClick={()=>props.onCardClick(props.card)}/>
+            <img src={props.card.link} alt={props.card.name} className="element__image" onClick={()=>props.onCardClick(props.card)}/>
             <div className="element__section">
             <h3 className="element__title">{props.card.name}</h3>
             <div className="element__like-container">
